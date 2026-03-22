@@ -1,0 +1,269 @@
+<!--
+  Neural Tracker
+  
+  Licencia: Creative Commons Atribución-NoComercial Internacional (CC BY-NC)
+  
+  Usted es libre de:
+  - Compartir: Copiar y redistribuir el material en cualquier medio o formato.
+  - Adaptar: Remezclar, transformar y construir a partir del material.
+  
+  Bajo los siguientes términos:
+  - Atribución: Debe dar crédito de manera adecuada y proporcionar un enlace a la licencia.
+  - NoComercial: No puede utilizar el material con fines comerciales o de venta.
+  
+  Para ver una copia de esta licencia, visite: https://creativecommons.org/licenses/by-nc/4.0/
+-->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Neural Tracker - Production</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        body { background-color: #020617; -webkit-tap-highlight-color: transparent; font-family: 'Inter', sans-serif; color: #f8fafc; overflow-x: hidden; }
+        .no-select { user-select: none; -webkit-user-select: none; }
+        .glass { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(51, 65, 85, 0.4); }
+        @keyframes pulse-red { 0%, 100% { opacity: 1; filter: drop-shadow(0 0 10px rgba(239, 68, 68, 0.5)); } 50% { opacity: 0.7; filter: drop-shadow(0 0 20px rgba(239, 68, 68, 0.8)); } }
+        .critical-glow { animation: pulse-red 1s infinite; }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+    </style>
+</head>
+<body class="no-select">
+    <div id="root"></div>
+    <script type="text/babel">
+        const { useState, useEffect, Fragment } = React;
+
+        const Icon = ({ name, size = 18, className = "" }) => {
+            const icons = {
+                gamepad: <path d="M6 12h4m-2-2v4m5-2h.01M18 12h.01M15 10h.01M15 14h.01M19 6H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2Z"/>,
+                youtube: <Fragment><path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z"/><polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02"/></Fragment>,
+                calendar: <path d="M8 2v4m8-4v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/>,
+                zap: <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8Z"/>,
+                piggy: <Fragment><path d="M19 5c-1.5 0-2.8 1.4-3 2-3.5-1.5-11-.3-11 5 0 1.8 0 3 2 4.5V20h4v-2h3v2h4v-4c1-.5 1.7-1 2-2h2v-4h-2c0-1-.5-1.5-1-2h0c.1-1.1-.4-2.2-1.2-3C19.4 5.2 19.2 5 19 5Z"/><path d="M12 11v1"/></Fragment>,
+                shopping: <Fragment><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></Fragment>,
+                fire: <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.5 3.5 6 2.136 2.136 3.5 4.5 3.5 7a7 7 0 1 1-14 0c0-3 2.5-5.5 2.5-5.5s3 2.5 3 5.5Z"/>,
+                users: <Fragment><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></Fragment>,
+                sync: <path d="M21 2v6h-6M3 22v-6h6M21 13a9 9 0 1 1-3-7.7L21 8M3 11a9 9 0 0 1 15-6.7L3 16"/>,
+                moon: <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
+            };
+            return (
+                <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                    {icons[name] || null}
+                </svg>
+            );
+        };
+
+        const App = () => {
+            const [score, setScore] = useState(() => Number(localStorage.getItem('tfm_v42_score')) || 0);
+            const [savings, setSavings] = useState(() => Number(localStorage.getItem('tfm_v42_savings')) || 0);
+            const [logs, setLogs] = useState(() => JSON.parse(localStorage.getItem('tfm_v42_logs')) || []);
+            const [history, setHistory] = useState(() => JSON.parse(localStorage.getItem('tfm_v42_history')) || {});
+            const [goals, setGoals] = useState(() => JSON.parse(localStorage.getItem('tfm_v42_goals')) || []);
+            const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+
+            useEffect(() => {
+                localStorage.setItem('tfm_v42_score', score);
+                localStorage.setItem('tfm_v42_savings', savings);
+                localStorage.setItem('tfm_v42_logs', JSON.stringify(logs));
+                localStorage.setItem('tfm_v42_history', JSON.stringify(history));
+                localStorage.setItem('tfm_v42_goals', JSON.stringify(goals));
+            }, [score, savings, logs, history, goals]);
+
+            const exportData = () => {
+                const data = JSON.stringify({ score, savings, logs, history, goals });
+                const el = document.createElement('textarea');
+                el.value = data;
+                document.body.appendChild(el);
+                el.select();
+                document.execCommand('copy');
+                document.body.removeChild(el);
+                alert("DATOS COPIADOS. Pégalos en el otro dispositivo.");
+            };
+
+            const importData = () => {
+                const data = prompt("Pega el código de sincronización:");
+                if (data) {
+                    try {
+                        const p = JSON.parse(data);
+                        setScore(p.score); setSavings(p.savings); setLogs(p.logs); setHistory(p.history); setGoals(p.goals);
+                        alert("SINCRO EXITOSA.");
+                    } catch (e) { alert("Error: Código inválido."); }
+                }
+            };
+
+            const getStatus = () => {
+                if (score < 0) return { label: "CRITICAL DEBT", color: "text-rose-500" };
+                if (score <= 5) return { label: "STABILIZING", color: "text-slate-400" };
+                if (score <= 15) return { label: "NEURAL SYNC", color: "text-sky-400" };
+                return { label: "NEURAL ELITE", color: "text-amber-400" };
+            };
+
+            const getStreak = () => {
+                let streak = 0, d = new Date();
+                while (true) {
+                    const ds = d.toISOString().split('T')[0];
+                    if (history[ds]?.t === 'mine') { streak++; d.setDate(d.getDate() - 1); }
+                    else if (history[ds]?.t === 'penalty') break;
+                    else if (ds !== new Date().toISOString().split('T')[0]) break;
+                    else { d.setDate(d.getDate() - 1); if (streak > 100) break; }
+                }
+                return streak;
+            };
+
+            const addAction = (points, label, type, money = 0) => {
+                let s = score, sv = savings, al = [];
+                const dl = new Date(selectedDate).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
+                const ex = history[selectedDate];
+
+                if (ex?.t === 'penalty' && (type === 'mine' || type === 'penalty')) return;
+
+                if (type === 'mine') {
+                    setHistory(h => ({...h, [selectedDate]: { t: 'mine', p: (h[selectedDate]?.p || 0) + points, m: (h[selectedDate]?.m || 0) + money }}));
+                } else if (type === 'penalty') {
+                    if (ex?.t === 'mine') {
+                        s -= ex.p; sv -= ex.m;
+                        al.push({ id: Date.now()-1, label: `ANULACIÓN PROGRESO ${dl}`, points: -ex.p, money: -ex.m, type: 'adjustment' });
+                    }
+                    setHistory(h => ({...h, [selectedDate]: { t: 'penalty', p: points, m: money }}));
+                }
+
+                setScore(s + points); setSavings(sv + money);
+                setLogs(l => [...al, { id: Date.now(), label: `${label} (${dl})`, points, money, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), type }, ...l].slice(0, 20));
+            };
+
+            return (
+                <div className="min-h-screen p-4 flex justify-center pb-24">
+                    <div className="w-full max-w-md space-y-6">
+                        
+                        {/* TOP BAR */}
+                        <div className="flex justify-between items-center px-2">
+                            <div className="flex flex-col">
+                                <h1 className="text-[10px] font-black tracking-[.3em] text-sky-500 uppercase">Neural Control</h1>
+                                <p className={`text-xl font-black italic tracking-tighter ${getStatus().color}`}>{getStatus().label}</p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <div className="flex items-center gap-1.5 bg-slate-900 px-3 py-1 rounded-full border border-orange-500/30">
+                                    <Icon name="fire" size={14} className="text-orange-500" />
+                                    <span className="text-xs font-bold text-orange-500">{getStreak()}</span>
+                                </div>
+                                <button onClick={exportData} className="p-2 text-slate-600 hover:text-sky-400 transition-colors"><Icon name="sync" size={18}/></button>
+                                <button onClick={importData} className="text-[8px] font-black uppercase text-slate-600">Import</button>
+                            </div>
+                        </div>
+
+                        {/* DASHBOARD */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className={`p-6 rounded-[2.5rem] border-2 text-center transition-all ${score < 0 ? 'critical-glow border-rose-500' : 'border-sky-500/20 bg-sky-500/5 shadow-inner'}`}>
+                                <span className="text-[9px] uppercase font-black text-slate-500 tracking-widest">Créditos</span>
+                                <div className={`text-5xl font-black my-1 ${score < 0 ? 'text-rose-500' : 'text-sky-400'}`}>{score}</div>
+                            </div>
+                            <div className="p-6 rounded-[2.5rem] border-2 border-amber-500/20 bg-amber-500/5 text-center">
+                                <span className="text-[9px] uppercase font-black text-slate-500 tracking-widest">Bóveda</span>
+                                <div className="text-4xl font-black my-1 text-amber-500">{savings.toFixed(2)}€</div>
+                                <button onClick={() => confirm("Reset manual?") && setScore(0)} className="text-[7px] font-bold uppercase text-slate-700 underline">Admin Reset</button>
+                            </div>
+                        </div>
+
+                        {/* CALENDAR */}
+                        <div className="glass rounded-[2.5rem] p-5 shadow-2xl">
+                            <div className="grid grid-cols-7 gap-1.5 place-items-center">
+                                {['L','M','X','J','V','S','D'].map(d => <div key={d} className="text-[9px] text-slate-600 font-black mb-1">{d}</div>)}
+                                {(() => {
+                                    const now = new Date(), days = [], dIM = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+                                    const fD = (new Date(now.getFullYear(), now.getMonth(), 1).getDay() || 7) - 1;
+                                    for (let i = 0; i < fD; i++) days.push(<div key={`e-${i}`} className="h-8 w-8"></div>);
+                                    for (let d = 1; d <= dIM; d++) {
+                                        const ds = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                                        const h = history[ds];
+                                        let bg = "bg-slate-800/40";
+                                        if (h?.t === 'mine') bg = "bg-emerald-500 shadow-[0_0_8px_#10b981]";
+                                        if (h?.t === 'penalty') bg = "bg-rose-500 shadow-[0_0_8px_#f43f5e]";
+                                        days.push(<div key={d} onClick={() => setSelectedDate(ds)} className={`h-8 w-8 rounded-lg flex items-center justify-center text-[10px] font-bold cursor-pointer transition-all ${bg} ${ds === selectedDate ? 'ring-2 ring-white scale-110' : ''}`}>{d}</div>);
+                                    }
+                                    return days;
+                                })()}
+                            </div>
+                        </div>
+
+                        {/* 1. MINING (GAINS) */}
+                        <div className="space-y-3">
+                            <div className="flex items-center gap-2 ml-2 text-[10px] font-black text-sky-500 uppercase tracking-widest"><Icon name="zap" size={14}/> 1. Neural Mining</div>
+                            <div className="grid grid-cols-2 gap-3">
+                                <button disabled={history[selectedDate]?.t === 'penalty'} onClick={() => addAction(5, 'Bloque 2.5h', 'mine', 2)} className="bg-slate-900/60 border border-slate-800 p-5 rounded-[2rem] active:scale-95 text-center disabled:opacity-20 shadow-lg">
+                                    <div className="text-sky-400 font-black text-2xl">+5 <span className="text-[10px] text-emerald-500">+2€</span></div>
+                                    <div className="text-[9px] text-slate-500 uppercase font-black">Bloque Trabajo 2.5h</div>
+                                </button>
+                                <button disabled={history[selectedDate]?.t === 'penalty'} onClick={() => addAction(3, 'Bloque 1.5h', 'mine', 1)} className="bg-slate-900/60 border border-slate-800 p-5 rounded-[2rem] active:scale-95 text-center disabled:opacity-20 shadow-lg">
+                                    <div className="text-sky-400 font-black text-2xl">+3 <span className="text-[10px] text-emerald-500">+1€</span></div>
+                                    <div className="text-[9px] text-slate-500 uppercase font-black">Bloque Trabajo 1.5h</div>
+                                </button>
+                                <button disabled={history[selectedDate]?.t === 'penalty'} onClick={() => addAction(2, 'Gym/Deporte', 'mine', 0)} className="bg-slate-800/20 border border-slate-700 p-3 rounded-2xl active:scale-95 text-[10px] font-black text-sky-400 uppercase disabled:opacity-20">🏃‍♂️ Gym/Deporte +2 Pts</button>
+                                <button disabled={history[selectedDate]?.t === 'penalty'} onClick={() => addAction(10, 'Hito TFM', 'mine', 5)} className="bg-slate-800/20 border border-slate-700 p-3 rounded-2xl active:scale-95 text-[10px] font-black text-amber-500 uppercase disabled:opacity-20">⭐ Hito +10 Pts / +5€</button>
+                            </div>
+                        </div>
+
+                        {/* 2. REWARDS (SPENDING) */}
+                        <div className="space-y-3">
+                            <div className="flex items-center gap-2 ml-2 text-[10px] font-black text-rose-500 uppercase tracking-widest"><Icon name="gamepad" size={14}/> 2. Neural Rewards</div>
+                            <div className="grid grid-cols-2 gap-2">
+                                <button disabled={score < 3} onClick={() => addAction(-3, 'Play 1h', 'spend')} className="bg-slate-900/40 border border-slate-800 p-3 rounded-xl flex justify-between px-5 text-[10px] font-bold uppercase disabled:opacity-10"><span>Play (1h)</span><span className="text-rose-500 font-black">-3</span></button>
+                                <button disabled={score < 2} onClick={() => addAction(-2, 'YouTube 30m', 'spend')} className="bg-slate-900/40 border border-rose-900/20 p-3 rounded-xl flex justify-between px-5 text-[10px] font-bold uppercase disabled:opacity-10"><span><Icon name="youtube" size={12} className="inline mr-1 text-rose-600"/> YT (30m)</span><span className="text-rose-500 font-black">-2</span></button>
+                                <button disabled={score < 3} onClick={() => addAction(-3, 'Streaming', 'spend')} className="bg-slate-900/40 border border-slate-800 p-3 rounded-xl flex justify-between px-5 text-[10px] font-bold uppercase disabled:opacity-10"><span>Cine/Serie</span><span className="text-rose-500 font-black">-3</span></button>
+                                <button disabled={score < 5} onClick={() => addAction(-5, 'Social Event', 'spend')} className="bg-slate-900/40 border border-slate-800 p-3 rounded-xl flex justify-between px-5 text-[10px] font-bold uppercase disabled:opacity-10"><span><Icon name="users" size={12} className="inline mr-1"/> Social</span><span className="text-rose-500 font-black">-5</span></button>
+                                <button disabled={score < 5} onClick={() => addAction(-5, 'Dormir +1h', 'spend')} className="bg-slate-900/40 border border-slate-800 p-3 rounded-xl flex justify-between px-5 text-[10px] font-bold uppercase col-span-2 disabled:opacity-10"><span><Icon name="moon" size={12} className="inline mr-1 text-sky-300"/> Dormir Extra (+1h)</span><span className="text-rose-500 font-black">-5</span></button>
+                            </div>
+                        </div>
+
+                        {/* 3. VAULT GOALS */}
+                        <div className="space-y-3">
+                            <div className="flex items-center gap-2 ml-2 text-[10px] font-black text-amber-500 uppercase tracking-widest"><Icon name="shopping" size={14}/> 3. Vault Goals</div>
+                            <div className="glass rounded-[2rem] p-5 space-y-3 shadow-inner">
+                                <div className="flex justify-between items-center"><span className="text-[9px] font-black uppercase text-slate-500">Objetivos</span><button onClick={() => {const n=prompt("Goal:"); const p=parseFloat(prompt("Precio (€):")); if(n&&p)setGoals([...goals,{id:Date.now(),n,p}])}} className="bg-amber-500 text-slate-950 px-3 py-1 rounded-full text-[9px] font-black uppercase">Add Goal</button></div>
+                                <div className="space-y-2">{goals.length === 0 ? <p className="text-[10px] text-slate-700 text-center py-2 italic font-bold tracking-tighter uppercase">Define tus premios para motivar el núcleo</p> : goals.map(g => (
+                                    <div key={g.id} className="flex justify-between items-center p-3 bg-slate-900/60 rounded-2xl border border-slate-800/30">
+                                        <div className="flex flex-col"><span className="text-[10px] font-black text-slate-200 uppercase">{g.n}</span><span className="text-[9px] font-bold text-amber-500">{g.p.toFixed(2)}€</span></div>
+                                        <button disabled={savings < g.p} onClick={() => {if(savings>=g.p){setSavings(s=>s-g.p); setGoals(goals.filter(x=>x.id!==g.id)); addAction(0,`COMPRA: ${g.n}`,'spend',-g.p)}}} className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase transition-all ${savings>=g.p?'bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/20 active:scale-95':'bg-slate-800 text-slate-600'}`}>Comprar</button>
+                                    </div>
+                                ))}</div>
+                            </div>
+                        </div>
+
+                        {/* 4. PENALTY */}
+                        <div className="pt-4">
+                            <button onClick={() => addAction(-7, 'SYSTEM FAIL', 'penalty', -3)} disabled={history[selectedDate]?.t === 'penalty'} className="w-full bg-rose-600 border-4 border-rose-400 p-6 rounded-[2.5rem] active:scale-95 disabled:opacity-20 shadow-2xl shadow-rose-950/50 group">
+                                <div className="text-white font-black text-xl uppercase italic group-hover:scale-105 transition-all">⚠️ REPORTAR FALLO CRÍTICO ⚠️</div>
+                                <div className="text-[11px] font-black text-rose-200 uppercase mt-2">Pierdes -7 Puntos y -3.00 €</div>
+                            </button>
+                            {score < 0 && <button onClick={() => confirm("Resetear puntos?") && setScore(0)} className="w-full bg-emerald-500 text-slate-950 p-4 rounded-[2rem] text-[10px] font-black uppercase mt-4 flex items-center justify-center gap-2"><Icon name="refresh" size={14}/> Reset Manual de Créditos</button>}
+                        </div>
+
+                        {/* AUDIT LOG */}
+                        <div className="bg-slate-900/20 rounded-[2.5rem] p-6 border border-slate-800/30">
+                            <h2 className="text-[10px] font-black uppercase text-slate-700 mb-4 flex items-center gap-2 tracking-widest"><Icon name="history" size={12}/> Auditoría del Sistema</h2>
+                            <div className="space-y-2 max-h-52 overflow-y-auto pr-1 custom-scrollbar">
+                                {logs.map(l => (
+                                    <div key={l.id} className={`flex justify-between items-center text-[10px] p-3 rounded-xl border ${l.type === 'adjustment' ? 'bg-slate-800/20 border-slate-700/50 italic opacity-40' : 'bg-slate-900/60 border-slate-800/10'}`}>
+                                        <div className="flex flex-col"><span className="font-black text-slate-300 uppercase tracking-tighter">{l.label}</span><span className="text-[8px] text-slate-600 font-bold uppercase">{l.time}</span></div>
+                                        <div className="text-right leading-tight">
+                                            <div className={`font-black ${l.points > 0 ? 'text-emerald-500' : (l.points < 0 ? 'text-rose-500' : 'text-sky-400')}`}>{l.points > 0 ? '+' : ''}{l.points}</div>
+                                            {l.money !== 0 && <div className={`font-black text-[8px] ${l.money > 0 ? 'text-emerald-500' : 'text-rose-500'}`}>{l.money > 0 ? '+' : ''}{l.money.toFixed(2)}€</div>}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
